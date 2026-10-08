@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>transpo tracker</title>
+
+    <!-- Favicon from the same repo: transpotracker.png -->
+    <link rel="icon" type="image/png" href="transpotracker.png">
+    <link rel="shortcut icon" type="image/png" href="transpotracker.png">
+    <link rel="apple-touch-icon" href="transpotracker.png">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #f4f5fb;
+            font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        #gas-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <iframe id="gas-iframe" src="about:blank" allow="geolocation; clipboard-read; clipboard-write"></iframe>
+
+    <script>
+        // Replace with your actual Google Apps Script Web App URL
+        const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbz6wScCaIGgqISRoPGuaZkz1pizQ0mjFa5iq7TvCgjcp3LVjhxYEsZkMSI0uv6VVhjT/exec';
+
+        const iframe = document.getElementById('gas-iframe');
+
+        // Build the full URL with preserved query parameters and hash
+        function buildIframeUrl() {
+            let url = GAS_WEBAPP_URL;
+
+            const params = new URLSearchParams(window.location.search);
+            const hash = window.location.hash;
+
+            if (params.toString()) {
+                url += '?' + params.toString();
+            }
+
+            if (hash) {
+                url += (params.toString() ? '&' : '?') + 'hash=' + encodeURIComponent(hash.substring(1));
+            }
+
+            return url;
+        }
+
+        const iframeUrl = buildIframeUrl();
+        iframe.src = iframeUrl;
+
+        // Optional: Handle postMessage communication from the embedded app
+        window.addEventListener('message', function(event) {
+            if (event.origin !== 'https://script.google.com') return;
+
+            if (event.data && event.data.type) {
+                switch(event.data.type) {
+                    case 'navigate':
+                        if (event.data.url && event.data.url !== window.location.pathname) {
+                            history.pushState(null, '', event.data.url);
+                        }
+                        break;
+                    case 'setTitle':
+                        if (event.data.title) {
+                            document.title = event.data.title;
+                        }
+                        break;
+                    case 'ready':
+                        console.log('Apps Script app is ready');
+                        break;
+                }
+            }
+        });
+
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', function() {
+            iframe.contentWindow.postMessage({
+                type: 'popstate',
+                url: window.location.href
+            }, '*');
+        });
+
+        console.log('Simple wrapper loaded. Iframe URL:', iframeUrl);
+    </script>
+</body>
+</html>
